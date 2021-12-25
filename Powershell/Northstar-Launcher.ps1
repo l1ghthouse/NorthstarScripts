@@ -320,6 +320,16 @@ function EnsureNorthstarRunning {
         $runningInstances=1,
         [Parameter(
             Mandatory=$false,
+            HelpMessage="Use software drivers for instead of GPU",
+            ParameterSetName = "Range" 
+        )][switch]
+        [Parameter(
+            Mandatory=$false,
+            ParameterSetName = "List" 
+        )][switch]
+        $softwared3d11=$false,
+        [Parameter(
+            Mandatory=$false,
             HelpMessage="Server Prefix",
             ParameterSetName = "Range" 
         )][string]
@@ -430,7 +440,10 @@ function EnsureNorthstarRunning {
                 }
                 Write-Host "Running Following Command:"
                 Write-Host "./NorthstarLauncher.exe -dedicated -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name"
-                ./NorthstarLauncher.exe -dedicated -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name #-softwared3d11
+
+                $cpuMode = if ($softwared3d11) { "-softwared3d11" } else { "" }
+
+                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name
                 Start-Sleep 5 #wait for child process to start
                 Get-Process | Where-Object {$_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority} | ForEach-Object {
                     $PriorityClass = 128
@@ -460,3 +473,31 @@ function EnsureNorthstarRunning {
         }
     }
 }
+
+ 
+
+# function LaunchSingleNorthstar {
+#     param(
+#         [Parameter(
+#             Mandatory=$false,
+#             ValueFromRemainingArguments=$true,
+#             Position = 0
+#         )][string[]]
+#         $listArgs
+#     )
+#     $line = 0
+#     #check if northstar is already running
+#     if (Get-TitanfallProcessCount){
+#          "Northstar is already running, watching for latest log file"
+#     } else {
+#         #start northstar
+#         Start-Process -FilePath "NorthstarLauncher.exe" -ArgumentList $listArgs -Wait
+#          "Northstar started"
+#     }   
+#     Start-Sleep -Seconds 5 
+#     do {
+#         $output = [Linq.Enumerable]::Skip([System.IO.File]::ReadLines((Get-ChildItem .\R2Northstar\logs\ | sort -Property LastWriteTime -Descending -Top 1).FullName), $line)
+#         $line += $output.GetCount($null)
+#          -NoNewline $output
+#     } while (Get-TitanfallProcessCount)
+# }
