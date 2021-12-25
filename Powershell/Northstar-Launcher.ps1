@@ -481,6 +481,7 @@ function EnsureNorthstarRunning {
         CommentConfig -pattern "sv_minupdaterate"
         CommentConfig -pattern "sv_max_snapshots_multiplayer"
         CommentConfig -pattern "base_tickinterval_mp"
+        $password=$(if ($ns_server_password) { "+ns_server_password $ns_server_password" } else { "" })
 
         $ProcessName = "Titanfall2-unpacked"
         Write-Host "Parameters Validated"
@@ -511,9 +512,9 @@ function EnsureNorthstarRunning {
                 $cpuMode = if ($softwared3d11) { "-softwared3d11" } else { "" }
 
 
-
-                Write-Host "./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) +ns_server_password $ns_server_password"  
-                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) +ns_server_password $ns_server_password
+                
+                Write-Host "./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"  
+                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password
                 Start-Sleep 5 #wait for child process to start
                 Get-Process | Where-Object {$_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority} | ForEach-Object {
                     $PriorityClass = 128
