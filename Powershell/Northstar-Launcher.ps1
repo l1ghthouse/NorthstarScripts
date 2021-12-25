@@ -303,18 +303,40 @@ function availiablePortInRange {
     }
     $PortList[$Port]
 }
+
+function CommentConfig {
+    param (
+        [Parameter(
+            Mandatory=$true,
+            HelpMessage="Pattern to comment out"
+        )][string]
+        $pattern  
+    )
+    $fileName        = '.\R2Northstar\mods\Northstar.CustomServers\mod\cfg\autoexec_ns_server.cfg'
+    $pattern = "^(?!\/\/.*$).*$pattern"
+    $firstOccurrence = $true
+    $insert          = "//"
+    $newContent = switch -Regex -File $fileName {
+        $pattern { 
+            if ($firstOccurrence) { 
+                "$($insert)$($_)"
+                $firstOccurrence = $false 
+            }
+        }
+        default { $_ }
+    }
+    $newContent | Set-Content $fileName -Force
+}
 function EnsureNorthstarRunning {
     [CmdletBinding(DefaultParameterSetName = 'Range')]
     param (
         [Parameter(
             Mandatory=$false,
             HelpMessage="Number of Northstar Instances to launch",
-            Position = 0,
             ParameterSetName = "Range" 
         )][int]
         [Parameter(
             Mandatory=$false,
-            Position = 0,
             ParameterSetName = "List" 
         )][int]
         $runningInstances=1,
@@ -330,6 +352,27 @@ function EnsureNorthstarRunning {
         $softwared3d11=$false,
         [Parameter(
             Mandatory=$false,
+            HelpMessage="Allow Clients that haven't been authorized with northstar to connect",
+            ParameterSetName = "Range" 
+        )][switch]
+        [Parameter(
+            Mandatory=$false,
+            ParameterSetName = "List" 
+        )][switch]
+        $ns_auth_allow_insecure=$false,
+        [Parameter(
+            Mandatory=$false,
+            HelpMessage="Tickrate used for the server",
+            ParameterSetName = "Range" 
+        )][int]
+        [Parameter(
+            Mandatory=$false,
+            ParameterSetName = "List" 
+        )][int]
+        [ValidateSet(20,60)]
+        $tickrate=20,
+        [Parameter(
+            Mandatory=$false,
             HelpMessage="Server Prefix",
             ParameterSetName = "Range" 
         )][string]
@@ -338,6 +381,16 @@ function EnsureNorthstarRunning {
             ParameterSetName = "List" 
         )][string]
         $serverPrefix="Northstar",
+        [Parameter(
+            Mandatory=$false,
+            HelpMessage="Server Password",
+            ParameterSetName = "Range" 
+        )][string]
+        [Parameter(
+            Mandatory=$false,
+            ParameterSetName = "List" 
+        )][string]
+        $ns_server_password="",
         [Parameter(
             Mandatory=$false,
             HelpMessage="Process Priority",
@@ -413,6 +466,22 @@ function EnsureNorthstarRunning {
         if ($runningInstances -gt $TCPPortList.Length) {
             throw "Number of requested instances ($runningInstances) exceeds number of available TCP ports ($($TCPPortList.Length))"
         }
+        
+        $sv_updaterate_mp=$tickrate
+        $sv_minupdaterate=$tickrate
+        $sv_max_snapshots_multiplayer=$tickrate*15
+        $base_tickinterval_mp=[float](1/$tickrate)
+
+        CommentConfig -pattern "ns_server_name"
+        CommentConfig -pattern "ns_player_auth_port"
+        CommentConfig -pattern "ns_auth_allow_insecure"
+        CommentConfig -pattern "ns_server_password"
+        
+        CommentConfig -pattern "sv_updaterate_mp"
+        CommentConfig -pattern "sv_minupdaterate"
+        CommentConfig -pattern "sv_max_snapshots_multiplayer"
+        CommentConfig -pattern "base_tickinterval_mp"
+
         $ProcessName = "Titanfall2-unpacked"
         Write-Host "Parameters Validated"
     }
@@ -423,7 +492,7 @@ function EnsureNorthstarRunning {
             if ($runningInstances -gt $((Get-Process | Where-Object {$_.ProcessName -eq $ProcessName } | Measure-Object).Count)){
                 Write-Host "Not enough instances running, starting new instance"
                 $random_postfix = ([guid]::NewGuid()).ToString().Substring(0,8)
-                $server_name = "[$serverRegion]$serverPrefix-$random_postfix".Replace(" ","-") #since spaces do not show properly when passed via command line
+                $server_name = "[$serverRegion][$tickrate-tick]$serverPrefix-$random_postfix".Replace(" ","-") #since spaces do not show properly when passed via command line
                 Write-Host "Searching for open TCP port in range $($TCPPortList[0]) - $($TCPPortList[$TCPPortList.Length-1])"
                 $portTCP = $(availiablePortInRange -protocol tcp -PortList $TCPPortList)
                 if ($portTCP -eq -1) {
@@ -439,11 +508,12 @@ function EnsureNorthstarRunning {
                     continue
                 }
                 Write-Host "Running Following Command:"
-                Write-Host "./NorthstarLauncher.exe -dedicated -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name"
-
                 $cpuMode = if ($softwared3d11) { "-softwared3d11" } else { "" }
 
-                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name
+
+
+                Write-Host "./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) +ns_server_password $ns_server_password"  
+                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) +ns_server_password $ns_server_password
                 Start-Sleep 5 #wait for child process to start
                 Get-Process | Where-Object {$_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority} | ForEach-Object {
                     $PriorityClass = 128
