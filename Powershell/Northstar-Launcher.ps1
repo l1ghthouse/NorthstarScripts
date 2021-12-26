@@ -540,6 +540,10 @@ function EnsureNorthstarRunning {
                 continue
             }
             Write-Host "Enough instances running, waiting for next check"
+            Get-Process $ProcessName | Where-Object { $_.MainWindowTitle -like "Engine error"} | ForEach-Object {
+                Write-Host "Server $($_.MainWindowTitle) crashed, restarting"
+                Stop-Process -Id $_.Id
+            }
             Start-Sleep 10
         }
     }
