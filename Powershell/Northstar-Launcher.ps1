@@ -362,6 +362,16 @@ function EnsureNorthstarRunning {
         $ns_auth_allow_insecure=$false,
         [Parameter(
             Mandatory=$false,
+            HelpMessage="Specify this flag if you would like to open the actual game instance",
+            ParameterSetName = "Range" 
+        )][switch]
+        [Parameter(
+            Mandatory=$false,
+            ParameterSetName = "List" 
+        )][switch]
+        $open_full_game=$false,
+        [Parameter(
+            Mandatory=$false,
             HelpMessage="Tickrate used for the server",
             ParameterSetName = "Range" 
         )][int]
@@ -467,6 +477,16 @@ function EnsureNorthstarRunning {
             throw "Number of requested instances ($runningInstances) exceeds number of available TCP ports ($($TCPPortList.Length))"
         }
         
+        if ($open_full_game -and $runningInstances -ne 1) {
+            throw "when launching full game, running instances must be 1"
+        } elseif ($open_full_game) {
+            $dedicated = '-dedicated'
+        } else {
+            $dedicated = ''
+        }
+        
+        $cl_cmdrate = $tickrate; #client commands, not needed for dedi
+        $cl_updaterate_mp = $tickrate;     #client commands, not needed for dedi
         $sv_updaterate_mp=$tickrate
         $sv_minupdaterate=$tickrate
         $sv_max_snapshots_multiplayer=$tickrate*15
@@ -478,6 +498,8 @@ function EnsureNorthstarRunning {
         CommentConfig -pattern "ns_server_password"
         
         CommentConfig -pattern "sv_updaterate_mp"
+        CommentConfig -pattern "cl_cmdrate"
+        CommentConfig -pattern "cl_updaterate_mp"
         CommentConfig -pattern "sv_minupdaterate"
         CommentConfig -pattern "sv_max_snapshots_multiplayer"
         CommentConfig -pattern "base_tickinterval_mp"
@@ -489,10 +511,12 @@ function EnsureNorthstarRunning {
 
     process {
         while ($true) {
-            Get-Process $ProcessName | Where-Object { $_.MainWindowTitle -like "Engine error"} | ForEach-Object {
+
+            Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { $_.MainWindowTitle -like "Engine error"} | ForEach-Object {
                 Write-Host "Server $($_.MainWindowTitle) crashed, restarting"
                 Stop-Process -Id $_.Id
             }
+
             Write-Host "Checking if enough northstar isntances are running running"
             if ($runningInstances -gt $((Get-Process | Where-Object {$_.ProcessName -eq $ProcessName } | Measure-Object).Count)){
                 Write-Host "Not enough instances running, starting new instance"
@@ -515,10 +539,9 @@ function EnsureNorthstarRunning {
                 Write-Host "Running Following Command:"
                 $cpuMode = if ($softwared3d11) { "-softwared3d11" } else { "" }
 
-
                 
-                Write-Host "./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"  
-                ./NorthstarLauncher.exe -dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password
+                Write-Host "./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"  
+                ./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password
                 Start-Sleep 5 #wait for child process to start
                 Get-Process | Where-Object {$_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority} | ForEach-Object {
                     $PriorityClass = 128
