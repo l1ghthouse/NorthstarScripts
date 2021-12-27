@@ -479,7 +479,7 @@ function EnsureNorthstarRunning {
         
         if ($open_full_game -and $runningInstances -ne 1) {
             throw "when launching full game, running instances must be 1"
-        } elseif ($open_full_game) {
+        } elseif (-not $open_full_game) {
             $dedicated = '-dedicated'
         } else {
             $dedicated = ''
