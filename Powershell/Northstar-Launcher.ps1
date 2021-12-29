@@ -515,8 +515,8 @@ function EnsureNorthstarRunning {
         `$PPID = $($PID)
         `$PPID
         while (`$true) {
-            Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { '`$(`$_.MainWindowTitle)' -like 'Engine error'} | ForEach-Object {
-                Write-Host 'Server `$(`$_.MainWindowTitle) crashed, restarting'
+            Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { "`$(`$_.MainWindowTitle)" -like 'Engine error'} | ForEach-Object {
+                Write-Host "Server `$(`$_.MainWindowTitle) crashed, restarting"
                 Stop-Process -Id `$(`$_.Id)
             }
             if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
