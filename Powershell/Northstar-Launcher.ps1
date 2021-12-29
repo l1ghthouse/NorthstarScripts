@@ -379,7 +379,7 @@ function EnsureNorthstarRunning {
             Mandatory=$false,
             ParameterSetName = "List" 
         )][int]
-        [ValidateSet(20,60)]
+        [ValidateSet(20,60, 100)]
         $tickrate=20,
         [Parameter(
             Mandatory=$false,
@@ -482,7 +482,7 @@ function EnsureNorthstarRunning {
         } elseif (-not $open_full_game) {
             $dedicated = '-dedicated'
         } else {
-            $dedicated = ''
+            $dedicated = '-noborder -window'
         }
         
         $cl_cmdrate = $tickrate; #client commands, not needed for dedi
@@ -510,13 +510,23 @@ function EnsureNorthstarRunning {
     }
 
     process {
-        while ($true) {
-
-            Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { $_.MainWindowTitle -like "Engine error"} | ForEach-Object {
-                Write-Host "Server $($_.MainWindowTitle) crashed, restarting"
-                Stop-Process -Id $_.Id
+        #handles crashes in background, exit when parrent process exits
+        $process = Start-Process powershell.exe @"
+        `$PPID = $($PID)
+        `$PPID
+        while (`$true) {
+            Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { '`$(`$_.MainWindowTitle)' -like 'Engine error'} | ForEach-Object {
+                Write-Host 'Server `$(`$_.MainWindowTitle) crashed, restarting'
+                Stop-Process -Id `$(`$_.Id)
             }
+            if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
+                exit
+            }
+            Start-Sleep -Seconds 5
+        }
+"@ -NoNewWindow
 
+        while ($true) {
             Write-Host "Checking if enough northstar isntances are running running"
             if ($runningInstances -gt $((Get-Process | Where-Object {$_.ProcessName -eq $ProcessName } | Measure-Object).Count)){
                 Write-Host "Not enough instances running, starting new instance"
@@ -526,14 +536,14 @@ function EnsureNorthstarRunning {
                 $portTCP = $(availiablePortInRange -protocol tcp -PortList $TCPPortList)
                 if ($portTCP -eq -1) {
                     Write-Warning "No available TCP ports in range $TCPPortList"
-                    Start-Sleep 10
+                    Start-Sleep -Seconds 10
                     continue
                 }
                 Write-Host "Searching for open UDP port in range $($UDPPortList[0]) - $($UDPPortList[$UDPPortList.Length-1])"
                 $portUDP = $(availiablePortInRange -protocol udp -PortList $UDPPortList)
                 if ($portUDP -eq -1) {
                     Write-Warning "No available UDP ports in range $UDPPortList"
-                    Start-Sleep 10
+                    Start-Sleep -Seconds 10
                     continue
                 }
                 Write-Host "Running Following Command:"
@@ -542,7 +552,7 @@ function EnsureNorthstarRunning {
                 
                 Write-Host "./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"  
                 ./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password
-                Start-Sleep 5 #wait for child process to start
+                Start-Sleep -Seconds 5 #wait for child process to start
                 Get-Process | Where-Object {$_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority} | ForEach-Object {
                     $PriorityClass = 128
                     if ($processPriority -eq 'Normal') {
@@ -555,7 +565,7 @@ function EnsureNorthstarRunning {
                 }
                 
                 While($true) {
-                    Start-Sleep 5
+                    Start-Sleep -Seconds 5
                     if($(Get-NetworkStatistics -Port $portUDP -Protocol udp).count -ne 0 -and $(Get-NetworkStatistics -Port $portTCP -Protocol tcp).count -ne 0) {
                         Write-Host "Server $server_name is running"
                         break
@@ -567,7 +577,7 @@ function EnsureNorthstarRunning {
                 continue
             }
             Write-Host "Enough instances running, waiting for next check"
-            Start-Sleep 10
+            Start-Sleep -Seconds 10
         }
     }
 }
