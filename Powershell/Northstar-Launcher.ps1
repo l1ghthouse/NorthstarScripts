@@ -1,76 +1,76 @@
 #https://github.com/RamblingCookieMonster/PowerShell/blob/master/Get-NetworkStatistics.ps1
 function Get-NetworkStatistics {
 <#
-    .SYNOPSIS
-	    Display current TCP/IP connections for local or remote system
-    .FUNCTIONALITY
-        Computers
-    .DESCRIPTION
-	    Display current TCP/IP connections for local or remote system.  Includes the process ID (PID) and process name for each connection.
-	    If the port is not yet established, the port number is shown as an asterisk (*).	
-	
-    .PARAMETER ProcessName
-	    Gets connections by the name of the process. The default value is '*'.
-	
-    .PARAMETER Port
-	    The port number of the local computer or remote computer. The default value is '*'.
-    .PARAMETER Address
-	    Gets connections by the IP address of the connection, local or remote. Wildcard is supported. The default value is '*'.
-    .PARAMETER Protocol
-	    The name of the Protocol$Protocol (TCP or UDP). The default value is '*' (all)
-	
-    .PARAMETER State
-	    Indicates the state of a TCP connection. The possible states are as follows:
-		
-	    Closed       - The TCP connection is closed. 
-	    Close_Wait   - The local endpoint of the TCP connection is waiting for a connection termination request from the local user. 
-	    Closing      - The local endpoint of the TCP connection is waiting for an acknowledgement of the connection termination request sent previously. 
-	    Delete_Tcb   - The transmission control buffer (TCB) for the TCP connection is being deleted. 
-	    Established  - The TCP handshake is complete. The connection has been established and data can be sent. 
-	    Fin_Wait_1   - The local endpoint of the TCP connection is waiting for a connection termination request from the remote endpoint or for an acknowledgement of the connection termination request sent previously. 
-	    Fin_Wait_2   - The local endpoint of the TCP connection is waiting for a connection termination request from the remote endpoint. 
-	    Last_Ack     - The local endpoint of the TCP connection is waiting for the final acknowledgement of the connection termination request sent previously. 
-	    Listen       - The local endpoint of the TCP connection is listening for a connection request from any remote endpoint. 
-	    Syn_Received - The local endpoint of the TCP connection has sent and received a connection request and is waiting for an acknowledgment. 
-	    Syn_Sent     - The local endpoint of the TCP connection has sent the remote endpoint a segment header with the synchronize (SYN) control bit set and is waiting for a matching connection request. 
-	    Time_Wait    - The local endpoint of the TCP connection is waiting for enough time to pass to ensure that the remote endpoint received the acknowledgement of its connection termination request. 
-	    Unknown      - The TCP connection state is unknown.
-	
-	    Values are based on the TcpState Enumeration:
-	    http://msdn.microsoft.com/en-us/library/system.net.networkinformation.tcpstate%28VS.85%29.aspx
+        .SYNOPSIS
+            Display current TCP/IP connections for local or remote system
+        .FUNCTIONALITY
+            Computers
+        .DESCRIPTION
+            Display current TCP/IP connections for local or remote system.  Includes the process ID (PID) and process name for each connection.
+            If the port is not yet established, the port number is shown as an asterisk (*).	
         
-        Cookie Monster - modified these to match netstat output per here:
-        http://support.microsoft.com/kb/137984
-    .PARAMETER ShowHostNames
-        If specified, will attempt to resolve local and remote addresses.
-    .PARAMETER tempFile
-        Temporary file to store results on remote system.  Must be relative to remote system (not a file share).  Default is "C:\netstat.txt"
-    .PARAMETER AddressFamily
-        Filter by IP Address family: IPv4, IPv6, or the default, * (both).
-        If specified, we display any result where both the localaddress and the remoteaddress is in the address family.
-    .EXAMPLE
-	    Get-NetworkStatistics | Format-Table
-    .EXAMPLE
-	    Get-NetworkStatistics iexplore -computername k-it-thin-02 -ShowHostNames | Format-Table
-    .EXAMPLE
-	    Get-NetworkStatistics -ProcessName md* -Protocol tcp
-    .EXAMPLE
-	    Get-NetworkStatistics -Address 192* -State LISTENING
-    .EXAMPLE
-	    Get-NetworkStatistics -State LISTENING -Protocol tcp
-    .EXAMPLE
-        Get-NetworkStatistics -Computername Computer1, Computer2
-    .EXAMPLE
-        'Computer1', 'Computer2' | Get-NetworkStatistics
-    .OUTPUTS
-	    System.Management.Automation.PSObject
-    .NOTES
-	    Author: Shay Levy, code butchered by Cookie Monster
-	    Shay's Blog: http://PowerShay.com
-        Cookie Monster's Blog: http://ramblingcookiemonster.github.io/
-    .LINK
-        http://gallery.technet.microsoft.com/scriptcenter/Get-NetworkStatistics-66057d71
-    #>
+        .PARAMETER ProcessName
+            Gets connections by the name of the process. The default value is '*'.
+        
+        .PARAMETER Port
+            The port number of the local computer or remote computer. The default value is '*'.
+        .PARAMETER Address
+            Gets connections by the IP address of the connection, local or remote. Wildcard is supported. The default value is '*'.
+        .PARAMETER Protocol
+            The name of the Protocol$Protocol (TCP or UDP). The default value is '*' (all)
+        
+        .PARAMETER State
+            Indicates the state of a TCP connection. The possible states are as follows:
+            
+            Closed       - The TCP connection is closed. 
+            Close_Wait   - The local endpoint of the TCP connection is waiting for a connection termination request from the local user. 
+            Closing      - The local endpoint of the TCP connection is waiting for an acknowledgement of the connection termination request sent previously. 
+            Delete_Tcb   - The transmission control buffer (TCB) for the TCP connection is being deleted. 
+            Established  - The TCP handshake is complete. The connection has been established and data can be sent. 
+            Fin_Wait_1   - The local endpoint of the TCP connection is waiting for a connection termination request from the remote endpoint or for an acknowledgement of the connection termination request sent previously. 
+            Fin_Wait_2   - The local endpoint of the TCP connection is waiting for a connection termination request from the remote endpoint. 
+            Last_Ack     - The local endpoint of the TCP connection is waiting for the final acknowledgement of the connection termination request sent previously. 
+            Listen       - The local endpoint of the TCP connection is listening for a connection request from any remote endpoint. 
+            Syn_Received - The local endpoint of the TCP connection has sent and received a connection request and is waiting for an acknowledgment. 
+            Syn_Sent     - The local endpoint of the TCP connection has sent the remote endpoint a segment header with the synchronize (SYN) control bit set and is waiting for a matching connection request. 
+            Time_Wait    - The local endpoint of the TCP connection is waiting for enough time to pass to ensure that the remote endpoint received the acknowledgement of its connection termination request. 
+            Unknown      - The TCP connection state is unknown.
+        
+            Values are based on the TcpState Enumeration:
+            http://msdn.microsoft.com/en-us/library/system.net.networkinformation.tcpstate%28VS.85%29.aspx
+            
+            Cookie Monster - modified these to match netstat output per here:
+            http://support.microsoft.com/kb/137984
+        .PARAMETER ShowHostNames
+            If specified, will attempt to resolve local and remote addresses.
+        .PARAMETER tempFile
+            Temporary file to store results on remote system.  Must be relative to remote system (not a file share).  Default is "C:\netstat.txt"
+        .PARAMETER AddressFamily
+            Filter by IP Address family: IPv4, IPv6, or the default, * (both).
+            If specified, we display any result where both the localaddress and the remoteaddress is in the address family.
+        .EXAMPLE
+            Get-NetworkStatistics | Format-Table
+        .EXAMPLE
+            Get-NetworkStatistics iexplore -computername k-it-thin-02 -ShowHostNames | Format-Table
+        .EXAMPLE
+            Get-NetworkStatistics -ProcessName md* -Protocol tcp
+        .EXAMPLE
+            Get-NetworkStatistics -Address 192* -State LISTENING
+        .EXAMPLE
+            Get-NetworkStatistics -State LISTENING -Protocol tcp
+        .EXAMPLE
+            Get-NetworkStatistics -Computername Computer1, Computer2
+        .EXAMPLE
+            'Computer1', 'Computer2' | Get-NetworkStatistics
+        .OUTPUTS
+            System.Management.Automation.PSObject
+        .NOTES
+            Author: Shay Levy, code butchered by Cookie Monster
+            Shay's Blog: http://PowerShay.com
+            Cookie Monster's Blog: http://ramblingcookiemonster.github.io/
+        .LINK
+            http://gallery.technet.microsoft.com/scriptcenter/Get-NetworkStatistics-66057d71
+        #>
   [OutputType('System.Management.Automation.PSObject')]
   [CmdletBinding()]
   param(
@@ -514,23 +514,60 @@ function EnsureNorthstarRunning {
 
       #handles crashes in background, exit when parrent process exits
       $process = Start-Process powershell.exe @"
-`$PPID = $($PID)
-`$PPID
-while (`$true) {
-    Get-Process $ProcessName -erroraction 'silentlycontinue' | Where-Object { "`$(`$_.MainWindowTitle)" -like 'Engine error'} | ForEach-Object {
-        Write-Host "Server `$(`$_.MainWindowTitle) crashed, restarting"
-        Stop-Process -Id `$(`$_.Id)
+    `$PPID = $($PID)
+    `$PPID
+    while (`$true) {
+        Get-Process $ProcessName -erroraction 'silentlycontinue' | ForEach-Object {
+          if ("`$(`$_.MainWindowTitle)" -like 'Engine error') {
+            Write-Host "Server `$(`$_.MainWindowTitle) crashed, restarting"
+            Stop-Process -Id `$(`$_.Id) -erroraction 'silentlycontinue'
+          }
+
+          
+
+        }
+        if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
+            exit
+        }
+        Start-Sleep -Seconds 5
     }
-    if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
-        exit
-    }
-    Start-Sleep -Seconds 5
-}
 "@ -NoNewWindow
 
       while ($true) {
         Write-Host "Checking if enough northstar isntances are running running"
-        if ($runningInstances -gt $((Get-Process | Where-Object { $_.ProcessName -eq $ProcessName } | Measure-Object).count)) {
+        $all_instance_store = @()
+        $instances = 0
+        {
+          Get-Process | Where-Object { $_.ProcessName -eq $ProcessName } | ForEach-Object{
+            
+            $cmd = $(Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'").CommandLine
+            $cmd_pid = Select-String -InputObject $cmd -Pattern "\+PID (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+            if ($cmd_pid -eq $PID) {
+              $instances++
+            }
+            $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+            $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+            $all_instance_store += @($cmd_pid, $cmd_udp, $cmd_tcp)
+          
+          }
+          $all_instance_store | ForEach-Object {
+            $i = $_
+            $all_instance_store | ForEach-Object {
+              $j = $_
+              if ($i[0] -ne $j[0] -and ($i[1] -eq $j[1] -or $i[2] -eq $j[2])) {
+                Write-Host "Duplicate instance found, killing the one with lower PID"
+                if ($i[0] -lt $j[0]) {
+                  Stop-Process -Id $i[0] -erroraction 'silentlycontinue'
+                } else {
+                  Stop-Process -Id $j[0] -erroraction 'silentlycontinue'
+                }
+              }
+            }
+          }
+        }
+         
+
+        if ($runningInstances -gt $instances) {
           Write-Host "Not enough instances running, starting new instance"
           $random_postfix = ([guid]::NewGuid()).ToString().Substring(0,8)
           $server_name = "[$serverRegion][$tickrate-tick]$serverPrefix-$random_postfix".Replace(" ","-") #since spaces do not show properly when passed via command line
@@ -553,7 +590,7 @@ while (`$true) {
 
 
           Write-Host "./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"
-          ./NorthstarLauncher.exe $dedicated $cpuMode -multiple -Port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password
+          ./NorthstarLauncher.exe $dedicated $cpuMode -multiple -Port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password +PID $PID
           Start-Sleep -Seconds 5 #wait for child process to start
           Get-Process | Where-Object { $_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority } | ForEach-Object {
             $PriorityClass = 128
