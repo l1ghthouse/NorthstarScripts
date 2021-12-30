@@ -598,7 +598,7 @@ function EnsureNorthstarRunning {
             for ($i = 0; $i -le 10; $i++){
               $udp_operational = $false
               $tcp_operational = $false
-              Get-ProcessPorts -ProcessId | ForEach-Object{
+              Get-ProcessPorts -ProcessId $_.Id | ForEach-Object{
                 if ($_.Protocol -eq 'UDP' -and $_.Port -eq $cmd_udp) {
                   $udp_operational = $true
                 }
