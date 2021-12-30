@@ -534,7 +534,7 @@ function EnsureNorthstarRunning {
 "@ -NoNewWindow
 
       while ($true) {
-        Write-Host "Checking if enough northstar isntances are running running"
+        Write-Host "Checking if enough northstar instances are running"
         $all_instance_store = @()
         $instances = 0
         
@@ -548,15 +548,17 @@ function EnsureNorthstarRunning {
           $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           
           if ($cmd_pid -eq $PID) {
+            $port_working = $false
             for ($i = 0; $i -le 10; $i++){
               $udp_port = Get-NetworkStatistics -Port $cmd_udp -Protocol udp -ErrorAction 'SilentlyContinue'
               $tcp_port = Get-NetworkStatistics -Port $cmd_tcp -Protocol tcp -ErrorAction 'SilentlyContinue'
               if (($tcp_port.Count -gt 0 -and $tcp_port[0].PID -eq $_.Id) -and ($udp_port.Count -gt 0 -and $udp_port[0].PID -eq $_.Id)) {
+                $port_working = $true
                 break
               }
               Start-Sleep -Seconds $(Get-Random -Minimum 3 -Maximum 7)
             }
-            if (-not ($udp_operational -and $tcp_operational)) {
+            if (-not $port_working) {
               Write-Host "Instance $($_.Id) TCP Or UDP ports are not operational, restarting"
               Stop-Process -Id $($_.Id) -erroraction 'silentlycontinue'
             }
