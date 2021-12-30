@@ -616,14 +616,6 @@ function EnsureNorthstarRunning {
               Stop-Process -Id $($_.Id) -erroraction 'silentlycontinue'
             }
           }
-
-          Get-ProcessPorts -Pid `$($_.Id) -erroraction 'silentlycontinue' | ForEach-Object{
-            if ($_.Protocol -eq 'TCP') {
-              $all_instance_store += $cmd_tcp
-            } elseif ($_.Protocol -eq 'UDP') {
-              $all_instance_store += $cmd_udp
-            }
-          }
           $all_instance_store += ,($_.Id, $cmd_udp, $cmd_tcp)
         }
 
