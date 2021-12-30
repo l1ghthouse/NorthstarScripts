@@ -329,53 +329,6 @@ function CommentConfig {
 }
 
 #https://www.tutorialspoint.com/how-to-get-the-port-number-of-the-processes-using-powershell
-function Get-ProcessPorts{
-  [cmdletbinding()]
-  Param(
-     [parameter(Mandatory=$True, ValueFromPipeLine=$True)]
-     [AllowEmptyCollection()]
-     [int]$ProcessID
-  )
-  Begin{    
-      Write-Verbose "Declaring empty array to store the output"
-      $portout = @()            
-  }
-  Process{
-       Write-Verbose "Processes to get the port information"      
-       $proc = Get-Process -Id $ProcessID  -ErrorAction 'SilentlyContinue'
-        if (!$proc) {
-            Write-Verbose "Process not found"
-            return
-        }
-        # Get the port for the process.
-        $mports = Netstat -ano | findstr $proc.ID
-        # Separate each instance
-        foreach($sport in $mports){
-            # Split the netstat output and remove empty lines from the output.
-            $out = $sport.Split('') | where{$_ -ne ""}
-            $LCount = $out[1].LastIndexOf(':')
-            $RCount = $out[2].LastIndexOf(':')
-            $portout += [PSCustomObject]@{              
-              'Process'  = $proc.Name
-              'PID' = $proc.ID
-              'Protocol' = $out[0]
-              'LocalAddress' = $out[1].SubString(0,$LCount)
-              'LocalPort' = $out[1].SubString($Lcount+1,($out[1].Length-$Lcount-1))
-              'RemoteAddress' = $out[2].SubString(0,$RCount)
-              'RemotePort' = $out[2].SubString($RCount+1,($out[2].Length-$Rcount-1))
-              'Connection' = $(
-                  # Checking if the connection contains any empty string.
-                  if(!($out[3] -match '\d')){$out[3]}      
-              )
-            }
-        }  
-  
-        $portout
-   }
-   End{
-   Write-Verbose "End of the program"
-  }
-}
 
 function EnsureNorthstarRunning {
   [CmdletBinding(DefaultParameterSetName = 'Range')]
@@ -596,17 +549,9 @@ function EnsureNorthstarRunning {
           
           if ($cmd_pid -eq $PID) {
             for ($i = 0; $i -le 10; $i++){
-              $udp_operational = $false
-              $tcp_operational = $false
-              Get-ProcessPorts -ProcessId $_.Id | ForEach-Object{
-                if ($_.Protocol -eq 'UDP' -and $_.Port -eq $cmd_udp) {
-                  $udp_operational = $true
-                }
-                if ($_.Protocol -eq 'TCP' -and $_.Port -eq $cmd_tcp) {
-                  $tcp_operational = $true
-                }
-              }
-              if ($udp_operational -and $tcp_operational) {
+              $udp_port = Get-NetworkStatistics -Port $portUDP -Protocol $cmd_udp -ErrorAction 'SilentlyContinue'
+              $tcp_port = Get-NetworkStatistics -Port $portTCP -Protocol $cmd_tcp -ErrorAction 'SilentlyContinue'
+              if (($tcp_port.Count -gt 0 -and $tcp_port[0].PID -eq $_.Id) -and ($udp_port.Count -gt 0 -and $udp_port[0].PID -eq $_.Id)) {
                 break
               }
               Start-Sleep -Seconds $(Get-Random -Minimum 3 -Maximum 7)
