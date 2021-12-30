@@ -538,7 +538,7 @@ function EnsureNorthstarRunning {
         $all_instance_store = @()
         $instances = 0
         
-        Get-Process | Where-Object { $_.ProcessName -eq $ProcessName } | ForEach-Object{
+        Get-Process $ProcessName | ForEach-Object{
           
           $cmd = $(Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'").CommandLine
           $cmd_pid = Select-String -InputObject $cmd -Pattern "\+PID (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
@@ -547,10 +547,10 @@ function EnsureNorthstarRunning {
           }
           $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
-          $all_instance_store += @($cmd_pid, $cmd_udp, $cmd_tcp)
+          $all_instance_store += ,($cmd_pid, $cmd_udp, $cmd_tcp)
         
         }
-        
+
         $all_instance_store | ForEach-Object {
           $i = $_
           $all_instance_store | ForEach-Object {
