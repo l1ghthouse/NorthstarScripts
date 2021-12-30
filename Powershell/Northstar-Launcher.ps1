@@ -572,14 +572,11 @@ function EnsureNorthstarRunning {
             Write-Host "Server `$(`$_.MainWindowTitle) crashed, restarting"
             Stop-Process -Id `$(`$_.Id) -erroraction 'silentlycontinue'
           }
-
-          
-
         }
         if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
             exit
         }
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds `$(Get-Random -Minimum 3 -Maximum 6)
     }
 "@ -NoNewWindow
 
@@ -612,7 +609,7 @@ function EnsureNorthstarRunning {
               if ($udp_operational -and $tcp_operational) {
                 break
               }
-              Start-Sleep -Seconds 5
+              Start-Sleep -Seconds $(Get-Random -Minimum 3 -Maximum 7)
             }
             if (-not ($udp_operational -and $tcp_operational)) {
               Write-Host "Instance $($_.Id) TCP Or UDP ports are not operational, restarting"
@@ -654,14 +651,14 @@ function EnsureNorthstarRunning {
           $portTCP = $(availiablePortInRange -Protocol tcp -PortList $TCPPortList)
           if ($portTCP -eq -1) {
             Write-Warning "No available TCP ports in range $TCPPortList"
-            Start-Sleep -Seconds 10
+            Start-Sleep -Seconds $(Get-Random -Minimum 8 -Maximum 12)
             continue
           }
           Write-Host "Searching for open UDP port in range $($UDPPortList[0]) - $($UDPPortList[$UDPPortList.Length-1])"
           $portUDP = $(availiablePortInRange -Protocol udp -PortList $UDPPortList)
           if ($portUDP -eq -1) {
             Write-Warning "No available UDP ports in range $UDPPortList"
-            Start-Sleep -Seconds 10
+            Start-Sleep -Seconds $(Get-Random -Minimum 8 -Maximum 12)
             continue
           }
           Write-Host "Running Following Command:"
@@ -683,7 +680,7 @@ function EnsureNorthstarRunning {
           }
           
           for ($i = 0; $i -le 10; $i++){
-            Start-Sleep -Seconds 5
+            Start-Sleep -Seconds $(Get-Random -Minimum 3 -Maximum 7)
             if ($(Get-NetworkStatistics -Port $portUDP -Protocol udp).count -ne 0 -and $(Get-NetworkStatistics -Port $portTCP -Protocol tcp).count -ne 0) {
               Write-Host "Server $server_name is running"
               break
@@ -695,7 +692,7 @@ function EnsureNorthstarRunning {
           continue
         }
         Write-Host "Enough instances running, waiting for next check"
-        Start-Sleep -Seconds 10
+        Start-Sleep -Seconds $(Get-Random -Minimum 8 -Maximum 12)
       }
     }
     finally {
