@@ -597,26 +597,27 @@ function EnsureNorthstarRunning {
           $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           
-
-          for ($i = 0; $i -le 10; $i++){
-            $udp_operational = $false
-            $tcp_operational = $false
-            Get-ProcessPorts -ProcessId | ForEach-Object{
-              if ($_.Protocol -eq 'UDP' -and $_.Port -eq $cmd_udp) {
-                $udp_operational = $true
+          if ($cmd_pid -eq $PID) {
+            for ($i = 0; $i -le 10; $i++){
+              $udp_operational = $false
+              $tcp_operational = $false
+              Get-ProcessPorts -ProcessId | ForEach-Object{
+                if ($_.Protocol -eq 'UDP' -and $_.Port -eq $cmd_udp) {
+                  $udp_operational = $true
+                }
+                if ($_.Protocol -eq 'TCP' -and $_.Port -eq $cmd_tcp) {
+                  $tcp_operational = $true
+                }
               }
-              if ($_.Protocol -eq 'TCP' -and $_.Port -eq $cmd_tcp) {
-                $tcp_operational = $true
+              if ($udp_operational -and $tcp_operational) {
+                break
               }
+              Start-Sleep -Seconds 5
             }
-            if ($udp_operational -and $tcp_operational) {
-              break
+            if (-not ($udp_operational -and $tcp_operational)) {
+              Write-Host "Instance $($_.Id) TCP Or UDP ports are not operational, restarting"
+              Stop-Process -Id $($_.Id) -erroraction 'silentlycontinue'
             }
-            Start-Sleep -Seconds 5
-          }
-          if (-not ($udp_operational -and $tcp_operational)) {
-            Write-Host "Instance $($_.Id) TCP Or UDP ports are not operational, restarting"
-            Stop-Process -Id $($_.Id) -erroraction 'silentlycontinue'
           }
 
           Get-ProcessPorts -Pid `$($_.Id) -erroraction 'silentlycontinue' | ForEach-Object{
