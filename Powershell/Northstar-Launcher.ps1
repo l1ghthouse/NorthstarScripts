@@ -550,6 +550,7 @@ function EnsureNorthstarRunning {
           $all_instance_store += @($cmd_pid, $cmd_udp, $cmd_tcp)
         
         }
+        
         $all_instance_store | ForEach-Object {
           $i = $_
           $all_instance_store | ForEach-Object {
