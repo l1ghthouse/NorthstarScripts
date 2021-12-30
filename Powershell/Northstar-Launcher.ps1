@@ -552,7 +552,7 @@ function EnsureNorthstarRunning {
             for ($i = 0; $i -le 10; $i++){
               $udp_port = Get-NetworkStatistics -Port $cmd_udp -Protocol udp -ErrorAction 'SilentlyContinue'
               $tcp_port = Get-NetworkStatistics -Port $cmd_tcp -Protocol tcp -ErrorAction 'SilentlyContinue'
-              if (($tcp_port.Count -gt 0 -and $tcp_port[0].PID -eq $_.Id) -and ($udp_port.Count -gt 0 -and $udp_port[0].PID -eq $_.Id)) {
+              if ($tcp_port[0].PID -eq $_.Id -and $udp_port[0].PID -eq $_.Id) {
                 $port_working = $true
                 break
               }
