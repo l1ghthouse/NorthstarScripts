@@ -327,6 +327,56 @@ function CommentConfig {
   }
   $newContent | Set-Content $fileName -Force
 }
+
+#https://www.tutorialspoint.com/how-to-get-the-port-number-of-the-processes-using-powershell
+function Get-ProcessPorts{
+  [cmdletbinding()]
+  Param(
+     [parameter(Mandatory=$True, ValueFromPipeLine=$True)]
+     [AllowEmptyCollection()]
+     [int]$ProcessID
+  )
+  Begin{    
+      Write-Verbose "Declaring empty array to store the output"
+      $portout = @()            
+  }
+  Process{
+       Write-Verbose "Processes to get the port information"      
+       $proc = Get-Process -Id $ProcessID  -ErrorAction 'SilentlyContinue'
+        if (!$proc) {
+            Write-Verbose "Process not found"
+            return
+        }
+        # Get the port for the process.
+        $mports = Netstat -ano | findstr $proc.ID
+        # Separate each instance
+        foreach($sport in $mports){
+            # Split the netstat output and remove empty lines from the output.
+            $out = $sport.Split('') | where{$_ -ne ""}
+            $LCount = $out[1].LastIndexOf(':')
+            $RCount = $out[2].LastIndexOf(':')
+            $portout += [PSCustomObject]@{              
+              'Process'  = $proc.Name
+              'PID' = $proc.ID
+              'Protocol' = $out[0]
+              'LocalAddress' = $out[1].SubString(0,$LCount)
+              'LocalPort' = $out[1].SubString($Lcount+1,($out[1].Length-$Lcount-1))
+              'RemoteAddress' = $out[2].SubString(0,$RCount)
+              'RemotePort' = $out[2].SubString($RCount+1,($out[2].Length-$Rcount-1))
+              'Connection' = $(
+                  # Checking if the connection contains any empty string.
+                  if(!($out[3] -match '\d')){$out[3]}      
+              )
+            }
+        }  
+  
+        $portout
+   }
+   End{
+   Write-Verbose "End of the program"
+  }
+}
+
 function EnsureNorthstarRunning {
   [CmdletBinding(DefaultParameterSetName = 'Range')]
   param(
@@ -539,7 +589,6 @@ function EnsureNorthstarRunning {
         $instances = 0
         
         Get-Process $ProcessName -erroraction 'silentlycontinue' | ForEach-Object{
-          
           $cmd = $(Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'").CommandLine
           $cmd_pid = Select-String -InputObject $cmd -Pattern "\+PID (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           if ($cmd_pid -eq $PID) {
@@ -547,8 +596,37 @@ function EnsureNorthstarRunning {
           }
           $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
           $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+          
+
+          for ($i = 0; $i -le 10; $i++){
+            $udp_operational = $false
+            $tcp_operational = $false
+            Get-ProcessPorts -ProcessId | ForEach-Object{
+              if ($_.Protocol -eq 'UDP' -and $_.Port -eq $cmd_udp) {
+                $udp_operational = $true
+              }
+              if ($_.Protocol -eq 'TCP' -and $_.Port -eq $cmd_tcp) {
+                $tcp_operational = $true
+              }
+            }
+            if ($udp_operational -and $tcp_operational) {
+              break
+            }
+            Start-Sleep -Seconds 5
+          }
+          if (-not ($udp_operational -and $tcp_operational)) {
+            Write-Host "Instance $($_.Id) TCP Or UDP ports are not operational, restarting"
+            Stop-Process -Id $($_.Id) -erroraction 'silentlycontinue'
+          }
+
+          Get-ProcessPorts -Pid `$($_.Id) -erroraction 'silentlycontinue' | ForEach-Object{
+            if ($_.Protocol -eq 'TCP') {
+              $all_instance_store += $cmd_tcp
+            } elseif ($_.Protocol -eq 'UDP') {
+              $all_instance_store += $cmd_udp
+            }
+          }
           $all_instance_store += ,($_.Id, $cmd_udp, $cmd_tcp)
-        
         }
 
         $all_instance_store | ForEach-Object {
@@ -566,7 +644,6 @@ function EnsureNorthstarRunning {
           }
         }
         
-         
 
         if ($runningInstances -gt $instances) {
           Write-Host "Not enough instances running, starting new instance"
@@ -603,8 +680,8 @@ function EnsureNorthstarRunning {
             Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'" | Invoke-CimMethod -Name SetPriority -Arguments @{ Priority = $PriorityClass }
             Write-Host "Priority of $($_.Id) set to $processPriority"
           }
-
-          while ($true) {
+          
+          for ($i = 0; $i -le 10; $i++){
             Start-Sleep -Seconds 5
             if ($(Get-NetworkStatistics -Port $portUDP -Protocol udp).count -ne 0 -and $(Get-NetworkStatistics -Port $portTCP -Protocol tcp).count -ne 0) {
               Write-Host "Server $server_name is running"
@@ -612,8 +689,8 @@ function EnsureNorthstarRunning {
             } else {
               Write-Host "Waiting for port to become availiable"
             }
+            $i++
           }
-
           continue
         }
         Write-Host "Enough instances running, waiting for next check"
