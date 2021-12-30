@@ -537,34 +537,34 @@ function EnsureNorthstarRunning {
         Write-Host "Checking if enough northstar isntances are running running"
         $all_instance_store = @()
         $instances = 0
-        {
-          Get-Process | Where-Object { $_.ProcessName -eq $ProcessName } | ForEach-Object{
-            
-            $cmd = $(Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'").CommandLine
-            $cmd_pid = Select-String -InputObject $cmd -Pattern "\+PID (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
-            if ($cmd_pid -eq $PID) {
-              $instances++
-            }
-            $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
-            $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
-            $all_instance_store += @($cmd_pid, $cmd_udp, $cmd_tcp)
+        
+        Get-Process | Where-Object { $_.ProcessName -eq $ProcessName } | ForEach-Object{
           
+          $cmd = $(Get-CimInstance Win32_Process -Filter "ProcessId = '$($_.Id)'").CommandLine
+          $cmd_pid = Select-String -InputObject $cmd -Pattern "\+PID (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+          if ($cmd_pid -eq $PID) {
+            $instances++
           }
+          $cmd_udp = Select-String -InputObject $cmd -Pattern "-port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+          $cmd_tcp = Select-String -InputObject $cmd -Pattern "\+ns_player_auth_port (\d+)" | ForEach-Object{$_.Matches[0].Groups[1].Value}
+          $all_instance_store += @($cmd_pid, $cmd_udp, $cmd_tcp)
+        
+        }
+        $all_instance_store | ForEach-Object {
+          $i = $_
           $all_instance_store | ForEach-Object {
-            $i = $_
-            $all_instance_store | ForEach-Object {
-              $j = $_
-              if ($i[0] -ne $j[0] -and ($i[1] -eq $j[1] -or $i[2] -eq $j[2])) {
-                Write-Host "Duplicate instance found, killing the one with lower PID"
-                if ($i[0] -lt $j[0]) {
-                  Stop-Process -Id $i[0] -erroraction 'silentlycontinue'
-                } else {
-                  Stop-Process -Id $j[0] -erroraction 'silentlycontinue'
-                }
+            $j = $_
+            if ($i[0] -ne $j[0] -and ($i[1] -eq $j[1] -or $i[2] -eq $j[2])) {
+              Write-Host "Duplicate instance found, killing the one with lower PID"
+              if ($i[0] -lt $j[0]) {
+                Stop-Process -Id $i[0] -erroraction 'silentlycontinue'
+              } else {
+                Stop-Process -Id $j[0] -erroraction 'silentlycontinue'
               }
             }
           }
         }
+        
          
 
         if ($runningInstances -gt $instances) {
