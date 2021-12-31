@@ -121,11 +121,27 @@ function Get-NetworkStatistics {
       }
     }
 
-    $results = netstat -ano | Select-String -Pattern '\s+(TCP|UDP)'
+    $success=$false
+    for($i = 0; $i -lt 20; $i++){
+      try {
+        $results = netstat -ano | Select-String -Pattern '\s+(TCP|UDP)'
+        $success=$true
+        break
+      }
+      catch{
+        Write-Host "Error running netstat.  Retrying in 10 seconds..."
+        Start-Sleep -Seconds 10
+        continue
+      }
+  
+    }
+    if ($success -eq $false) {
+      throw "Error running netstat.  Verify permissions and connectivity."
+    }
 
+    
 
     #initialize counter for progress
-    $totalCount = $results.count
     $count = 0
 
     #Loop through each line of results    
@@ -518,8 +534,9 @@ function EnsureNorthstarRunning {
       #handles crashes in background, exit when parrent process exits
       $process = Start-Process powershell.exe @"
     `$PPID = $($PID)
-    `$PPID
     while (`$true) {
+      Start-Sleep -Seconds `$(Get-Random -Minimum 3 -Maximum 6)
+      try{
         Get-Process $ProcessName -erroraction 'silentlycontinue' | ForEach-Object {
           if ("`$(`$_.MainWindowTitle)" -like 'Engine error') {
             Write-Host "Server `$(`$_.MainWindowTitle) crashed, restarting"
@@ -529,7 +546,9 @@ function EnsureNorthstarRunning {
         if ((Get-Process | Where-Object { `$_.Id -eq `$PPID } | Measure-Object).Count -eq 0) {
             exit
         }
-        Start-Sleep -Seconds `$(Get-Random -Minimum 3 -Maximum 6)
+      } catch {
+        continue
+      }
     }
 "@ -NoNewWindow
 
@@ -635,7 +654,7 @@ function EnsureNorthstarRunning {
       }
     }
     finally {
-      Stop-Process -Id $process.id
+      Stop-Process -Id $process.id 
     }
 
   }
