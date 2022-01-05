@@ -412,6 +412,16 @@ function Get-NetworkStatistics {
       $serverPrefix = "Northstar",
       [Parameter(
         Mandatory = $false,
+        HelpMessage = "Max Players",
+        ParameterSetName = "Range"
+      )] [int]
+      [Parameter(
+        Mandatory = $false,
+        ParameterSetName = "List"
+      )] [int]
+      $maxplayers = 0,
+      [Parameter(
+        Mandatory = $false,
         HelpMessage = "Server Password",
         ParameterSetName = "Range"
       )] [string]
@@ -510,6 +520,9 @@ function Get-NetworkStatistics {
       $sv_minupdaterate = $tickrate
       $sv_max_snapshots_multiplayer = $tickrate * 15
       $base_tickinterval_mp = [float](1 / $tickrate)
+      if ($maxplayers -lt 0) {
+        $playercount = "-maxplayers $maxplayers"
+      }
   
       CommentConfig -Pattern "ns_server_name"
       CommentConfig -Pattern "ns_player_auth_port"
@@ -623,8 +636,8 @@ function Get-NetworkStatistics {
             $cpuMode = if ($softwared3d11) { "-softwared3d11" } else { "" }
   
   
-            Write-Host "./NorthstarLauncher.exe $dedicated $cpuMode -multiple -port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password"
-            Start-Process "./NorthstarLauncher.exe" -ArgumentList "$dedicated $cpuMode -multiple -Port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password +PID $PID"
+            Write-Host "./NorthstarLauncher.exe $dedicated $cpuMode -multiple -Port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password $playercount +PID $PID "
+            Start-Process "./NorthstarLauncher.exe" -ArgumentList "$dedicated $cpuMode -multiple -Port $portUDP +setplaylist private_match +ns_player_auth_port $portTCP +ns_server_name $server_name +sv_updaterate_mp $sv_updaterate_mp +cl_updaterate_mp $cl_updaterate_mp +cl_cmdrate $cl_cmdrate +sv_minupdaterate $sv_minupdaterate +base_tickinterval_mp $base_tickinterval_mp +sv_max_snapshots_multiplayer $sv_max_snapshots_multiplayer +ns_auth_allow_insecure $([int]$ns_auth_allow_insecure.ToBool()) $password $playercount +PID $PID"
             Start-Sleep -Seconds 5 #wait for child process to start
             Get-Process | Where-Object { $_.ProcessName -eq $ProcessName -and $_.PriorityClass -notlike $processPriority } | ForEach-Object {
               $PriorityClass = 128
