@@ -520,7 +520,7 @@ function Get-NetworkStatistics {
       $sv_minupdaterate = $tickrate
       $sv_max_snapshots_multiplayer = $tickrate * 15
       $base_tickinterval_mp = [float](1 / $tickrate)
-      if ($maxplayers -lt 0) {
+      if ($maxplayers -gt 0) {
         $playercount = "-maxplayers $maxplayers"
       }
   
