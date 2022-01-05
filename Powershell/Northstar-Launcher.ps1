@@ -524,7 +524,7 @@ function Get-NetworkStatistics {
       CommentConfig -Pattern "base_tickinterval_mp"
       $password = $(if ($ns_server_password) { "+ns_server_password $ns_server_password" } else { "" })
   
-      $ProcessName = "Titanfall2-unpacked"
+      $ProcessName = "NorthstarLauncher"
       Write-Host "Parameters Validated"
     }
   
